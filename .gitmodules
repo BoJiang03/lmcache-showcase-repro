@@ -1,0 +1,7 @@
+[submodule "third_party/LMCache"]
+	path = third_party/LMCache
+	url = https://github.com/BoJiang03/LMCache.git
+[submodule "third_party/vllm"]
+	path = third_party/vllm
+	url = https://github.com/BoJiang03/vllm.git
+	branch = mimo-tp2-split-qkv-inductor-fix

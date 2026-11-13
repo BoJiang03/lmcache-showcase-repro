@@ -12,6 +12,16 @@ multi-turn replay. Numbers and analysis: [RESULTS.md](RESULTS.md).
 Case 3 gives both arms a small L1 (64 GB) and an fs_native L2 on NVMe capped at the GPU memory
 size (282 GB), so the L2 footprint per token decides who keeps the multi-turn working set.
 
+## Getting the code
+
+```
+git clone --recursive https://github.com/BoJiang03/lmcache-showcase-repro.git
+```
+
+`third_party/LMCache` and `third_party/vllm` are submodules pinned to the exact commits the
+runs used. The vLLM checkout is large; `git submodule update --init --filter=blob:none`
+keeps it smaller, or skip it and apply `patches/vllm/` to the nightly wheel (below).
+
 ## Layout
 
 ```
@@ -22,8 +32,9 @@ aiperf_plugins/        AIPerf plugins used by the replay (weka_framing, live_his
 workloads/agentic/     fetch_trace.py for the Weka agentic trace
 scripts/               case1.sh case2.sh case3.sh run_all.sh kvcheck_case3.sh check_mimo_tp2.sh
 analysis/              live_ws.py (live working set), lru_curve.py (L2 size -> reuse coverage)
-patches/vllm/          MiMo TP2 fix for vLLM (required for case 3)
-patches/lmcache/       the two LMCache builds (lazy offload + SWA fix; GQA dedup)
+third_party/LMCache    BoJiang03/LMCache; tags showcase-20261113-case{1,2,3} = the three builds
+third_party/vllm       BoJiang03/vllm, branch mimo-tp2-split-qkv-inductor-fix (MiMo TP2 fix)
+patches/vllm/          the same vLLM fix as a patch for the nightly wheel (required for case 3)
 results/               raw data of every run reported in RESULTS.md (see below)
 ```
 
@@ -31,15 +42,20 @@ results/               raw data of every run reported in RESULTS.md (see below)
 
 | component | version |
 |---|---|
-| vLLM | nightly `0.34.0rc1.dev156+g4e3463c87` (cu130) + `patches/vllm/0001-*.patch` |
-| LMCache, case 1 | `LMCache/LMCache` dev `29340c7c` |
-| LMCache, case 2 | dev `b8f34d05` + `patches/lmcache/gqa-tp-replica-dedup/*.patch` (branch `gqa-tp-replica-dedup`) |
-| LMCache, case 3 | dev `6d8376b1` + `patches/lmcache/lazy-final-gqadedup/lazy-final-gqadedup.diff` (branch `lazy-final-gqadedup`; commit list in `COMMITS.txt`) |
+| vLLM | nightly `0.34.0rc1.dev156+g4e3463c87` (cu130) + `patches/vllm/0001-*.patch` (= `third_party/vllm`, one commit on top of `4e3463c87`) |
+| LMCache, case 1 | tag `showcase-20261113-case1` = `LMCache/LMCache` dev `29340c7c` |
+| LMCache, case 2 | tag `showcase-20261113-case2` = dev `b8f34d05` + GQA KV-head replica dedup (`0da765cb`) |
+| LMCache, case 3 | tag `showcase-20261113-case3` = lazy offload + GQA dedup + sliding-window tail fix (`5b8d231a`) |
 | AIPerf | 0.13.0 with `aiperf_plugins/` installed |
 
-Build LMCache from source with gcc-toolset-12 (host gcc 10 cannot build the torch C++20
-extensions). Each build gets its own install prefix and is passed with `--lmcache-path`
-(`LMCP=` in the scripts); case 1 uses the LMCache installed in the vLLM venv.
+`scripts/build_lmcache.sh` builds the three tags from the submodule with gcc-toolset-12 (host
+gcc 10 cannot build the torch C++20 extensions): case 1 into the vLLM venv, cases 2 and 3
+into their own `--target` prefixes, which the scripts pass with `--lmcache-path` (`LMCP=`).
+
+The case-3 build is the code the runs used. A later review found two bugs in its sliding-window
+tail pinning (a GPU block pin could leak; an op could be dropped once vLLM hashed a partial tail
+block), both of which can only hurt the tuned arm; the fix is `768dee69` on `BoJiang03/LMCache`
+branch `lazy-final`.
 
 The vLLM patch matters only for MiMo at TP2: without it, torch.compile produces garbage
 output there (speculative acceptance length 1.00). `scripts/check_mimo_tp2.sh` checks it:
@@ -54,7 +70,7 @@ $PRT_W/venv          vLLM + LMCache (case 1) venv        $PRT_W/venv-aiperf   AI
 $PRT_W/models/       GLM-5.2-FP8, MiniMax-M3.1-Flash, MiMo-V2.6-Flash-RL (with dflash/)
 $PRT_W/hf-alias/     HF cache aliases for the pinned revisions
 $PRT_W/trace/weka-062126-256k-dir   agentic trace (workloads/agentic/fetch_trace.py)
-$PRT_W/lmc-dedup, $PRT_W/lmc-lazy-fix   LMCache builds for case 2 and case 3
+$PRT_W/lmc-dedup, $PRT_W/lmc-lazy-fix   LMCache builds for case 2 and case 3 (scripts/build_lmcache.sh)
 $PRT_W/results, $PRT_W/logs
 ```
 
