@@ -1,0 +1,34 @@
+{
+ "window_start": 1794583127.5082643,
+ "window_s": 960.0,
+ "requests": 583,
+ "errors": 1,
+ "ttft_p50": 3.4796656599999998,
+ "ttft_p90": 70.04895304600008,
+ "ttft_p95": 106.46507406499997,
+ "decode_p10": 18.38979558550885,
+ "decode_p50": 30.86549985296156,
+ "prompt_tokens_by_source": {
+  "local_compute": 2510495.671927101,
+  "local_cache_hit": 10120550.268919276,
+  "external_kv_transfer": 33666383.80678186
+ },
+ "prompt_token_share": {
+  "local_compute": 0.054225378938140965,
+  "local_cache_hit": 0.2185985339593877,
+  "external_kv_transfer": 0.7271760871024714
+ },
+ "external_token_share": 0.7271760871024714,
+ "preemptions": 4.0,
+ "mtp_mean_accept_len": 1.833404891474931,
+ "input_tok_per_s": 46534.26354166667,
+ "output_tok_per_s": 422.225,
+ "total_tok_per_s": 46956.488541666666,
+ "interactivity_mean": 31.077010239773674,
+ "interactivity_p50": 30.86549985296156,
+ "ttft_mean": 24.141154445943396,
+ "req_per_s": 0.6072916666666667,
+ "mode": "lmcache",
+ "concurrency": 75,
+ "aiperf_rc": 0
+}

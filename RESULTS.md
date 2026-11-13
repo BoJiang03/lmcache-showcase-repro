@@ -56,6 +56,23 @@ The earlier (pre-PRT-alignment) pair gave the same picture: native 189 req / TTF
 LMCache 620 req / 15.8 s. Native TTFT p50 moves a lot between runs (its queueing is in the
 hundreds of seconds); p90, throughput and hit share are stable.
 
+### Case 1 at conc 75 (LMCache not queueing)
+
+| metric | native | LMCache | LMCache / native |
+|---|---|---|---|
+| requests completed | 195 | 583 | 3.0x |
+| TTFT p50 (s) | 26.6 | 3.5 | 7.6x lower |
+| TTFT p90 (s) | 199.8 | 70.0 | 2.9x lower |
+| TTFT mean (s) | 69.7 | 24.1 | 2.9x lower |
+| decode p50 (tok/s/user) | 6.5 | 30.9 | 4.8x |
+| interactivity mean | 8.8 | 31.1 | 3.5x |
+| total tok/s | 15,147 | 46,956 | 3.1x |
+| prompt tokens recomputed | 55.5% | 5.4% | |
+
+At conc 96 LMCache queued about two requests per running one (TTFT p50 18 s); at 75 its
+TTFT p50 is 3.5 s at the same throughput. Native's per-rank, unshared cache still misses on
+most returning turns (DP routing has no session affinity), so the gap holds.
+
 ## Case 2: MiniMax-M3.1-Flash TP8, LMCache (GQA dedup) vs vLLM native offload
 
 LMCache L1 1.5 TB with GQA KV-head replica dedup vs vLLM native CPU offload 1.5 TB. conc 160,
@@ -78,6 +95,26 @@ rank's loads on one thread) halved TTFT p50 (60.7 -> 29.6 s) and raised throughp
 Native: the MiniMax recipe (`--disable-hybrid-kv-cache-manager`, no EP, ...) lifted its
 external hit share from 23% to 61% and its completed requests from 277 to 636, so the
 advantage is now 2.4-2.9x instead of the earlier 3-4x.
+
+### Case 2 at conc 130
+
+| metric | native | LMCache | LMCache / native |
+|---|---|---|---|
+| requests completed | 1172 | 1695 | 1.45x |
+| TTFT p50 (s) | 18.0 | 14.7 | 1.2x lower |
+| TTFT p90 (s) | 40.9 | 24.5 | 1.7x lower |
+| TTFT mean (s) | 20.7 | 14.2 | 1.5x lower |
+| decode p50 (tok/s/user) | 28.1 | 41.0 | 1.5x |
+| interactivity mean | 30.6 | 44.1 | 1.4x |
+| total tok/s | 94,488 | 134,904 | 1.4x |
+| prompt tokens recomputed | 11.9% | 6.3% | |
+
+With one TP8 engine and 1.5 TB of CPU memory each, both tiers hold most of the conc-130
+working set, so the gap is small. Between conc 130 and 160 native falls off a cliff
+(requests 1172 -> 636, TTFT p50 18 -> 82 s, recompute 12% -> 27%) while LMCache barely
+moves (1695 -> 1535, 14.7 -> 29.6 s, 6.3% -> 6.8%). Likely cause (not isolated): GQA dedup
+stores each KV head once, so the same 1.5 TB holds more sessions before eviction starts
+forcing recomputes.
 
 ## KV correctness (case 3 tuned build, TP2)
 

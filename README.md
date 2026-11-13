@@ -64,11 +64,11 @@ large `/dev/shm` (`mount -o remount,size=1800G /dev/shm`); case 2 needs ~1.6 TB 
 ## Running
 
 ```
-scripts/run_all.sh                 # all six arms in sequence, ~5 h
+scripts/run_all.sh                 # all ten arms in sequence, ~9 h
 scripts/case3.sh eager formal_c88  # one arm
 scripts/case3.sh lazy  formal_c88
-scripts/case1.sh lmcache ; scripts/case1.sh native
-scripts/case2.sh lmcache ; scripts/case2.sh native
+scripts/case1.sh lmcache ; scripts/case1.sh native          # CONC=75 for the lower-load point
+scripts/case2.sh lmcache ; scripts/case2.sh native          # CONC=130 for the lower-load point
 ```
 
 Run arms one at a time: the two case-3 arms must see the same NVMe, and cases 1 and 2 use
