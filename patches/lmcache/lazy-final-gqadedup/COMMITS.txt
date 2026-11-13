@@ -1,0 +1,11 @@
+5b8d231a [MP] Do not store zeroed sliding-window tails under lazy offload
+9eb53a2a [MP] Resolve GQA replicas from each layer's own KV head count
+c69862b5 [MP] Store GQA KV heads once across TP replicas
+149152bd [MP] lazy offload: on_store_results rejects an unbound manager again
+e5050e5d [MP] Port the lazy offload unit tests to the final API
+190583c3 [Bugfix][MP] lazy offload: fail a due store whose chunks L1 had no room for
+1983c5eb [Core] lazy offload: preempted requests keep their buffered ops
+59fc17cc [Core] lazy offload: make stores due per Mamba anchor segment
+35ba9e28 [Core] lazy offload: protect buffered blocks from admissions and resumed loads
+1afc86fa [Core] lazy offload: bound the danger depth from the schedule
+base: LMCache/LMCache dev 6d8376b1248cbbc79806a9aacc2530f3951a41e1

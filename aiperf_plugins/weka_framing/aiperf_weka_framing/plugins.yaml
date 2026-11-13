@@ -1,0 +1,18 @@
+# SPDX-License-Identifier: Apache-2.0
+# Overrides the built-in weka_trace loader. Equal priority: an external
+# package beats the built-in, so the CLI (--custom-dataset-type weka_trace)
+# is unchanged.
+schema_version: "1.0"
+
+custom_dataset_loader:
+  weka_trace:
+    class: aiperf_weka_framing.loader:FramingWekaTraceLoader
+    description: |
+      Built-in weka_trace loader, except that a chain's turn 0 which repeats an
+      earlier request's hash prefix reuses that request's role segmentation
+      for the shared blocks, so the chat-template rendering of the shared
+      prefix is identical and the server prefix cache can hit it.
+    metadata:
+      is_trace: true
+      default_block_size: 64
+      default_prompt_corpus: coding

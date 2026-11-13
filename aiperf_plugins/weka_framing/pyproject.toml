@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aiperf-weka-framing"
+version = "0.1.0"
+description = "AIPerf plugin: weka_trace loader that keeps the provider's role framing on a chain's shared turn-0 prefix"
+requires-python = ">=3.10"
+dependencies = ["aiperf==0.13.0"]
+
+# Entry-point name must not start with "aiperf": PluginEntry.is_builtin is
+# package.startswith("aiperf"), and two "built-ins" at equal priority keep the first.
+[project.entry-points."aiperf.plugins"]
+weka_framing = "aiperf_weka_framing:plugins.yaml"
+
+[tool.setuptools]
+packages = ["aiperf_weka_framing"]
+
+[tool.setuptools.package-data]
+aiperf_weka_framing = ["plugins.yaml"]

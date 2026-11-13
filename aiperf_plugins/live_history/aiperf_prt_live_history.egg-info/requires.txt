@@ -1,0 +1,2 @@
+aiperf==0.13.0
+aiperf-weka-framing==0.1.0

@@ -1,0 +1,7 @@
+Metadata-Version: 2.4
+Name: aiperf-prt-live-history
+Version: 0.1.0
+Summary: AIPerf plugin: weka_trace replay whose assistant history is the server's own output
+Requires-Python: >=3.10
+Requires-Dist: aiperf==0.13.0
+Requires-Dist: aiperf-weka-framing==0.1.0

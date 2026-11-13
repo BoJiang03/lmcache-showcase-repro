@@ -1,0 +1,2 @@
+[aiperf.plugins]
+weka_framing = aiperf_weka_framing:plugins.yaml

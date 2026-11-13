@@ -1,0 +1,6 @@
+Metadata-Version: 2.4
+Name: aiperf-weka-framing
+Version: 0.1.0
+Summary: AIPerf plugin: weka_trace loader that keeps the provider's role framing on a chain's shared turn-0 prefix
+Requires-Python: >=3.10
+Requires-Dist: aiperf==0.13.0

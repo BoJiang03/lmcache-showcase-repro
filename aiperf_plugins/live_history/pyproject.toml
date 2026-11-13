@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aiperf-prt-live-history"
+version = "0.1.0"
+description = "AIPerf plugin: weka_trace replay whose assistant history is the server's own output"
+requires-python = ">=3.10"
+dependencies = ["aiperf==0.13.0", "aiperf-weka-framing==0.1.0"]
+
+# Entry-point name must not start with "aiperf" (PluginEntry.is_builtin).
+[project.entry-points."aiperf.plugins"]
+prt_live_history = "aiperf_prt_live_history:plugins.yaml"
+
+[tool.setuptools]
+packages = ["aiperf_prt_live_history"]
+
+[tool.setuptools.package-data]
+aiperf_prt_live_history = ["plugins.yaml"]

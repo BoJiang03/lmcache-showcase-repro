@@ -1,0 +1,55 @@
+From b49e18562ca05d5d1e56566a5bd937545f03d97a Mon Sep 17 00:00:00 2001
+From: BoJiang03 <bo.jiang@temple.edu>
+Date: Fri, 13 Nov 2026 15:10:01 +0800
+Subject: [PATCH] [Bugfix][MiMo] Fix garbage output at TP2 under torch.compile
+
+MiMo-V2.6-Flash at TP2 produced garbage text whenever torch.compile was
+on: eager mode and compile-off with CUDA graphs were correct, and turning
+off every fusion pass did not help. Speculative decoding (DFlash, MTP)
+showed it first as an acceptance length of 1.00.
+
+TP2 is the only layout where a rank owns several checkpoint chunks of the
+fused fp8 QKV whose K and V rows share a scale block, so only it takes
+the padded [Q | K V pad] split in _split_qkv. That split built K and V
+from an unflatten -> slice -> flatten view chain; gather the rows with
+explicit per-chunk slices and a cat instead.
+
+Tested: TP2 greedy outputs now match TP4; DFlash acceptance length at TP2
+went from 1.00 to 4.89; tests/models/quantization/test_mimo_v2_qkv_shard.py
+passes (32 passed, 2 skipped).
+
+Signed-off-by: BoJiang03 <bo.jiang@temple.edu>
+---
+ vllm/model_executor/models/mimo_v2.py | 16 +++++++++++-----
+ 1 file changed, 11 insertions(+), 5 deletions(-)
+
+diff --git a/vllm/model_executor/models/mimo_v2.py b/vllm/model_executor/models/mimo_v2.py
+index edd50109e..70b897cc2 100644
+--- a/vllm/model_executor/models/mimo_v2.py
++++ b/vllm/model_executor/models/mimo_v2.py
+@@ -576,11 +576,17 @@ def _split_qkv(
+     """Split a rank's fused QKV output (see _fused_qkv_kv_chunk_rows)."""
+     if not kv_chunk_rows:
+         return qkv.split([q_size, k_size, v_size], dim=-1)
+-    q, kv = qkv.split([q_size, qkv.shape[-1] - q_size], dim=-1)
+-    kv = kv.unflatten(-1, (-1, kv_chunk_rows))
+-    k_rows, v_rows = k_size // kv.shape[-2], v_size // kv.shape[-2]
+-    k = kv[..., :k_rows].flatten(-2)
+-    v = kv[..., k_rows : k_rows + v_rows].flatten(-2)
++    # Gather each chunk's K and V rows with explicit slices and a cat. The
++    # unflatten -> slice -> flatten view chain produced garbage output under
++    # torch.compile (MiMo-V2.6 at TP2, the only layout that takes this path),
++    # while eager mode was correct.
++    q = qkv[..., :q_size]
++    kv = qkv[..., q_size:]
++    num_chunks = kv.shape[-1] // kv_chunk_rows
++    k_rows, v_rows = k_size // num_chunks, v_size // num_chunks
++    starts = [i * kv_chunk_rows for i in range(num_chunks)]
++    k = torch.cat([kv[..., s : s + k_rows] for s in starts], dim=-1)
++    v = torch.cat([kv[..., s + k_rows : s + k_rows + v_rows] for s in starts], dim=-1)
+     return q, k, v
+ 
+ 
+-- 
+2.43.7
+

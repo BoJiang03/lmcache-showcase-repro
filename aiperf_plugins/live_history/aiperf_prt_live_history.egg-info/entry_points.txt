@@ -1,0 +1,2 @@
+[aiperf.plugins]
+prt_live_history = aiperf_prt_live_history:plugins.yaml

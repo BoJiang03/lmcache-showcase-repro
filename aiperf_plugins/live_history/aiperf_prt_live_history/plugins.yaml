@@ -1,0 +1,34 @@
+# SPDX-License-Identifier: Apache-2.0
+# weka_trace: priority 1 beats aiperf_weka_framing (priority 0), whose loader
+# this one extends. chat: equal priority, an external package beats the built-in.
+schema_version: "1.0"
+
+custom_dataset_loader:
+  weka_trace:
+    class: aiperf_prt_live_history.loader:LiveHistoryWekaTraceLoader
+    priority: 1
+    description: |
+      aiperf_weka_framing's weka_trace loader, plus a prt_src tag on every
+      assistant message that stands for a whole turn's output.
+    metadata:
+      is_trace: true
+      default_block_size: 64
+      default_prompt_corpus: coding
+
+endpoint:
+  chat:
+    class: aiperf_prt_live_history.endpoint:LiveHistoryChatEndpoint
+    description: |
+      OpenAI chat endpoint that replaces prt_src-tagged assistant messages with
+      the server's own output for that turn (return_token_ids).
+    metadata:
+      endpoint_path: /v1/chat/completions
+      supports_streaming: true
+      produces_tokens: true
+      tokenizes_input: true
+      supports_audio: true
+      supports_images: true
+      supports_videos: true
+      consumes_system_message: true
+      supports_cache_bust: true
+      metrics_title: LLM Metrics
