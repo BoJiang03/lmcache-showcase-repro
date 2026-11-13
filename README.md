@@ -24,7 +24,7 @@ scripts/               case1.sh case2.sh case3.sh run_all.sh kvcheck_case3.sh ch
 analysis/              live_ws.py (live working set), lru_curve.py (L2 size -> reuse coverage)
 patches/vllm/          MiMo TP2 fix for vLLM (required for case 3)
 patches/lmcache/       the two LMCache builds (lazy offload + SWA fix; GQA dedup)
-results/               result.json / meta.json of every run reported in RESULTS.md
+results/               raw data of every run reported in RESULTS.md (see below)
 ```
 
 ## Software
@@ -91,3 +91,21 @@ all eight GPUs. Each run writes `result.json` (scored over the 960 s window) und
 LRU and prints reuse coverage against L2 size; `analysis/live_ws.py` prints the live vs
 cumulative working set. The c48 pilot put the tuned build at ~31 KB/token and the baseline at
 ~143 KB/token, which led to conc 88 (GPU KV peak ~100%) and L2 = 282 GB.
+
+## Raw data
+
+`results/<run>/` holds everything a run wrote except AIPerf's dataset mmap cache:
+
+- `result.json`: the scored 960 s window (the numbers in RESULTS.md); `meta.json`: exact
+  commands, environment and GPUs.
+- `aiperf/profile_export.jsonl.gz`: one record per request (timestamps, ISL/OSL, TTFT, ITL);
+  `aiperf/profile_export_aiperf.{json,csv}` and `profile_export_console.txt`: AIPerf's summary;
+  `aiperf/server_metrics_export.*`: Prometheus scrapes taken by AIPerf.
+- `samples.jsonl.gz`: vLLM metrics sampled by `runner/sampler.py` (KV usage, running/waiting,
+  prefix and external hits, spec decoding counters).
+- `vllm.log.gz`, `lmcache.log.gz`, `aiperf.log.gz`: process logs.
+- case 3 only: `l2_du.txt`, the L2 directory size every 30 s (`<unix time> <bytes>`).
+
+Files over 200 KB are gzipped; `gunzip -k` them before pointing `runner/score.py` or
+`analysis/*.py` at a run directory.
+
